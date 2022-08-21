@@ -1,15 +1,34 @@
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using MongoDB.Driver;
 using Shopping.API.Models;
 
 namespace Shopping.API.Data
 {
-     public static class ProductContext
+     public  class ProductContext
     {
-        public static readonly List<Product> Products = new List<Product>
-		{
-			new Product()
+        public ProductContext(IConfiguration configuration)
+        {
+            var client = new MongoClient(configuration["DatabaseSettings:ConnectionString"]);
+            var database = client.GetDatabase(configuration["DatabaseSettings:DatabaseName"]);
+            Products = database.GetCollection<Product>(configuration["DatabaseSettings:CollectionName"]);
+            SeedData(Products);
+        }
+        private static void SeedData(IMongoCollection<Product> productCollection)
+        {
+            var existProduct = productCollection.Find(p => true).Any();
+            if (!existProduct)
+            {
+                productCollection.InsertMany(GetPreConfiguredProducts());
+            }
+        }
+        private static IEnumerable<Product> GetPreConfiguredProducts()
+        {
+            return new List<Product>()
+            {
+                new Product()
                 {
-                    Name = "IPhone XXX",
+                    Name = "IPhone X",
                     Description = "This phone is the company's biggest change to its flagship smartphone in years. It includes a borderless.",
                     ImageFile = "product-1.png",
                     Price = 950.00M,
@@ -49,12 +68,16 @@ namespace Shopping.API.Data
                 },
                 new Product()
                 {
-                    Name = "LG G7 ThinQ EndofCourse",
+                    Name = "LG G7 ThinQ New8",
                     Description = "This phone is the company's biggest change to its flagship smartphone in years. It includes a borderless.",
                     ImageFile = "product-6.png",
                     Price = 240.00M,
                     Category = "Home Kitchen"
                 }
-        };
+
+            };
+        }
+        public IMongoCollection<Product> Products { get; set; }
+        
     }
 }
